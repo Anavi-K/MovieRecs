@@ -20,13 +20,13 @@ print("Ratings:", len(ratings))
 
 tfidf = TfidfVectorizer(token_pattern=r"[^|]+")
 
-tfidf_matrix = tfidf.fit_transform(movies["genres"])
-
-content_similarity = cosine_similarity(tfidf_matrix)
+tfidf_matrix = tfidf.fit_transform(
+    movies["genres"].fillna("")
+)
 
 print(
-    "Content similarity matrix:",
-    content_similarity.shape
+    "TF-IDF matrix:",
+    tfidf_matrix.shape
 )
 
 
@@ -42,13 +42,9 @@ user_movie_matrix = ratings.pivot_table(
 
 user_movie_matrix = user_movie_matrix.fillna(0)
 
-collaborative_similarity = cosine_similarity(
-    user_movie_matrix.T
-)
-
 print(
-    "Collaborative similarity matrix:",
-    collaborative_similarity.shape
+    "User-movie matrix:",
+    user_movie_matrix.shape
 )
 
 
@@ -58,12 +54,16 @@ print(
 
 def recommend_hybrid(movie_title, num_recommendations=5):
 
+    # -----------------------------------
     # Find the movie
+    # -----------------------------------
+
     matches = movies[
         movies["title"].str.contains(
             movie_title,
             case=False,
-            na=False
+            na=False,
+            regex=False
         )
     ]
 
@@ -77,27 +77,42 @@ def recommend_hybrid(movie_title, num_recommendations=5):
         movies.iloc[movie_index]["movieId"]
     )
 
+    print(
+        f"Recommendation movie: "
+        f"{movies.iloc[movie_index]['title']}"
+    )
+
     # -----------------------------------
     # Content-based scores
     # -----------------------------------
 
-    content_scores = content_similarity[movie_index]
+    # Calculate similarity ONLY for this movie
+    content_scores = cosine_similarity(
+        tfidf_matrix[movie_index],
+        tfidf_matrix
+    ).flatten()
 
     # -----------------------------------
     # Collaborative scores
     # -----------------------------------
 
+    collaborative_score_map = {}
+
     if movie_id in user_movie_matrix.columns:
 
         collaborative_index = (
-            user_movie_matrix.columns.get_loc(movie_id)
+            user_movie_matrix.columns.get_loc(
+                movie_id
+            )
         )
 
-        collaborative_scores = (
-            collaborative_similarity[
-                collaborative_index
-            ]
-        )
+        # Calculate similarity ONLY for this movie
+        collaborative_scores = cosine_similarity(
+            user_movie_matrix.T.iloc[
+                [collaborative_index]
+            ],
+            user_movie_matrix.T
+        ).flatten()
 
         collaborative_score_map = dict(
             zip(
@@ -105,9 +120,6 @@ def recommend_hybrid(movie_title, num_recommendations=5):
                 collaborative_scores
             )
         )
-
-    else:
-        collaborative_score_map = {}
 
     # -----------------------------------
     # Combine scores
@@ -117,13 +129,23 @@ def recommend_hybrid(movie_title, num_recommendations=5):
 
     for index, row in movies.iterrows():
 
-        recommended_movie_id = int(row["movieId"])
+        # Don't recommend the movie itself
+        if index == movie_index:
+            continue
 
-        content_score = content_scores[index]
+        recommended_movie_id = int(
+            row["movieId"]
+        )
 
-        collaborative_score = collaborative_score_map.get(
-            recommended_movie_id,
-            0
+        content_score = float(
+            content_scores[index]
+        )
+
+        collaborative_score = float(
+            collaborative_score_map.get(
+                recommended_movie_id,
+                0
+            )
         )
 
         # 40% content + 60% collaborative
@@ -133,7 +155,10 @@ def recommend_hybrid(movie_title, num_recommendations=5):
         )
 
         hybrid_scores.append(
-            (index, hybrid_score)
+            (
+                index,
+                hybrid_score
+            )
         )
 
     # -----------------------------------
@@ -145,23 +170,26 @@ def recommend_hybrid(movie_title, num_recommendations=5):
         reverse=True
     )
 
+    # -----------------------------------
+    # Build result
+    # -----------------------------------
+
     recommendations = []
 
     for index, score in hybrid_scores:
-
-        # Don't recommend the movie itself
-        if index == movie_index:
-            continue
 
         recommendations.append({
             "movieId": int(
                 movies.iloc[index]["movieId"]
             ),
             "title": movies.iloc[index]["title"],
-            "score": round(float(score), 3)
+            "score": round(
+                float(score),
+                3
+            )
         })
 
-        if len(recommendations) == num_recommendations:
+        if len(recommendations) >= num_recommendations:
             break
 
     return recommendations
