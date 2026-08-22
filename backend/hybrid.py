@@ -193,3 +193,77 @@ def recommend_hybrid(movie_title, num_recommendations=5):
             break
 
     return recommendations
+
+
+# ===================================
+# 5. Personalized recommendation for user (from watched history)
+# ===================================
+
+def recommend_personalized(watched_movie_ids, num_recommendations=10):
+    if not watched_movie_ids:
+        return []
+
+    watched_set = set(int(mid) for mid in watched_movie_ids)
+    total_movies = len(movies)
+
+    accumulated_scores = [0.0] * total_movies
+    count_valid_watched = 0
+
+    for watched_id in watched_movie_ids:
+        matches = movies[movies["movieId"] == watched_id]
+        if len(matches) == 0:
+            continue
+
+        movie_index = matches.index[0]
+        count_valid_watched += 1
+
+        # Content scores
+        content_scores = cosine_similarity(
+            tfidf_matrix[movie_index],
+            tfidf_matrix
+        ).flatten()
+
+        # Collaborative scores
+        collaborative_score_map = {}
+        if watched_id in user_movie_matrix.columns:
+            collab_index = user_movie_matrix.columns.get_loc(watched_id)
+            collaborative_scores = cosine_similarity(
+                user_movie_matrix.T.iloc[[collab_index]],
+                user_movie_matrix.T
+            ).flatten()
+            collaborative_score_map = dict(
+                zip(user_movie_matrix.columns, collaborative_scores)
+            )
+
+        for idx, row in movies.iterrows():
+            mid = int(row["movieId"])
+            if mid in watched_set:
+                continue
+
+            c_score = float(content_scores[idx])
+            collab_score = float(collaborative_score_map.get(mid, 0))
+            h_score = 0.4 * c_score + 0.6 * collab_score
+            accumulated_scores[idx] += h_score
+
+    if count_valid_watched == 0:
+        return []
+
+    candidate_scores = []
+    for idx, row in movies.iterrows():
+        mid = int(row["movieId"])
+        if mid in watched_set:
+            continue
+        avg_score = accumulated_scores[idx] / count_valid_watched
+        candidate_scores.append((idx, avg_score))
+
+    candidate_scores.sort(key=lambda x: x[1], reverse=True)
+
+    recommendations = []
+    for idx, score in candidate_scores[:num_recommendations]:
+        recommendations.append({
+            "movieId": int(movies.iloc[idx]["movieId"]),
+            "title": movies.iloc[idx]["title"],
+            "score": round(float(score), 3)
+        })
+
+    return recommendations
