@@ -28,8 +28,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Local frontend + backend sessions
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = False
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = True
 
 db.init_app(app)
 
@@ -40,7 +40,8 @@ CORS(
     supports_credentials=True,
     origins=[
         "http://localhost:5173",
-        "http://127.0.0.1:5173"
+        "http://127.0.0.1:5173",
+        "https://movierecs-3.onrender.com"
     ]
 )
 
