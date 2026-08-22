@@ -9,7 +9,7 @@ import Watchlist from "./pages/Watchlist";
 import Watched from "./pages/Watched";
 import Settings from "./pages/Settings";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://movierecs-2.onrender.com";
 
 function App() {
   const [user, setUser] = useState(null);
