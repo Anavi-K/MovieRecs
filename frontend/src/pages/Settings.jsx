@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PasswordInput from "../components/PasswordInput";
 import "../App.css";
 
 function Settings({ API_URL, user, onUserUpdate }) {
@@ -110,8 +111,7 @@ function Settings({ API_URL, user, onUserUpdate }) {
 
               <div className="form-group">
                 <label>New Password</label>
-                <input
-                  type="password"
+                <PasswordInput
                   placeholder="New password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -120,8 +120,7 @@ function Settings({ API_URL, user, onUserUpdate }) {
 
               <div className="form-group">
                 <label>Confirm New Password</label>
-                <input
-                  type="password"
+                <PasswordInput
                   placeholder="Confirm new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -135,8 +134,7 @@ function Settings({ API_URL, user, onUserUpdate }) {
 
               <div className="form-group">
                 <label>Current Password *</label>
-                <input
-                  type="password"
+                <PasswordInput
                   placeholder="Enter current password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}

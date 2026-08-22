@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PasswordInput from "../components/PasswordInput";
 import "../App.css";
 
 function Login({ API_URL, onLoginSuccess, onSwitchToSignup }) {
@@ -74,8 +75,8 @@ function Login({ API_URL, onLoginSuccess, onSwitchToSignup }) {
             onChange={(e) => setUsername(e.target.value)}
             required
           />
-          <input
-            type="password"
+
+          <PasswordInput
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
